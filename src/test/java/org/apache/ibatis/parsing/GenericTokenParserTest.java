@@ -78,6 +78,10 @@ public class GenericTokenParserTest {
   public void shallNotInterpolateSkippedVaiables() {
     GenericTokenParser parser = new GenericTokenParser("${", "}", new VariableTokenHandler(new HashMap<String, String>()));
 
+    /**
+     * 遇到反斜线+openToken或者反斜线+closeToken，则不解析
+     * 解析的如果找不到对应的则返回null
+     */
     assertEquals("${skipped} variable", parser.parse("\\${skipped} variable"));
     assertEquals("This is a ${skipped} variable", parser.parse("This is a \\${skipped} variable"));
     assertEquals("null ${skipped} variable", parser.parse("${skipped} \\${skipped} variable"));

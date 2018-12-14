@@ -30,6 +30,12 @@ public class GenericTokenParser {
     this.handler = handler;
   }
 
+  /**
+   * 解析，比如mybatis-config.xml或者sql中的参数
+   * 将里面的${}内的内容解析出来交给handler去处理
+   * @param text
+   * @return
+   */
   public String parse(String text) {
     if (text == null || text.isEmpty()) {
       return "";

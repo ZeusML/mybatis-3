@@ -26,7 +26,7 @@ import org.xml.sax.SAXException;
 
 /**
  * Offline entity resolver for the MyBatis DTDs(or XSDs)
- * 
+ * MyBatis自己封装了dtd，xsd，文件，避免每次使用都从网络下载，浪费时间
  * @author Clinton Begin
  * @author Eduardo Macarron
  */
