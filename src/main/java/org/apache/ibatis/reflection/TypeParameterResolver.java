@@ -64,6 +64,13 @@ public class TypeParameterResolver {
     return result;
   }
 
+  /**
+   * 解析类型
+   * @param type
+   * @param srcType
+   * @param declaringClass
+   * @return
+   */
   private static Type resolveType(Type type, Type srcType, Class<?> declaringClass) {
     if (type instanceof TypeVariable) {
       return resolveTypeVar((TypeVariable<?>) type, srcType, declaringClass);

@@ -83,6 +83,7 @@ public class PropertyParser {
             defaultValue = content.substring(separatorIndex + defaultValueSeparator.length());
           }
           if (defaultValue != null) {
+            //如果key对应的没有值，则使用defaultValue
             return variables.getProperty(key, defaultValue);
           }
         }

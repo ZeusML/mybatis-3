@@ -41,26 +41,56 @@ import org.apache.ibatis.reflection.property.PropertyNamer;
 /**
  * This class represents a cached set of class definition information that
  * allows for easy mapping between property names and getter/setter methods.
- *
+ * 反射器，每个 Reflector 对应一个类。Reflector 会缓存反射操作需要的类的信息，例如：构造方法、属性名、setting / getting 方法
  * @author Clinton Begin
  */
 public class Reflector {
 
+  /**
+   * 类
+   */
   private final Class<?> type;
+  /**
+   * 可读的属性数组
+   */
   private final String[] readablePropertyNames;
+  /**
+   * 可写的属性数组
+   */
   private final String[] writeablePropertyNames;
+  /**
+   * 属性对应的 setting 方法的映射。
+   */
   private final Map<String, Invoker> setMethods = new HashMap<>();
+  /**
+   * 属性对应的 getting 方法的映射。
+   */
   private final Map<String, Invoker> getMethods = new HashMap<>();
+  /**
+   * 属性对应的 setting 方法的方法参数类型的映射
+   */
   private final Map<String, Class<?>> setTypes = new HashMap<>();
+  /**
+   * 属性对应的 getting 方法的返回值类型的映射。{@link #getMethods}
+   */
   private final Map<String, Class<?>> getTypes = new HashMap<>();
+  /**
+   *  默认构造方法
+   */
   private Constructor<?> defaultConstructor;
 
+  /**
+   * 不区分大小写的属性集合
+   */
   private Map<String, String> caseInsensitivePropertyMap = new HashMap<>();
 
   public Reflector(Class<?> clazz) {
     type = clazz;
+    //初始化默认的构造方法
     addDefaultConstructor(clazz);
+    //初始化getMethods 和getTypes
     addGetMethods(clazz);
+    //初始化setMethods和setTypes
     addSetMethods(clazz);
     addFields(clazz);
     readablePropertyNames = getMethods.keySet().toArray(new String[getMethods.keySet().size()]);
@@ -74,8 +104,10 @@ public class Reflector {
   }
 
   private void addDefaultConstructor(Class<?> clazz) {
+    //all constructors
     Constructor<?>[] consts = clazz.getDeclaredConstructors();
     for (Constructor<?> constructor : consts) {
+      // find no args contructors
       if (constructor.getParameterTypes().length == 0) {
           this.defaultConstructor = constructor;
       }
@@ -83,25 +115,37 @@ public class Reflector {
   }
 
   private void addGetMethods(Class<?> cls) {
+    //key: field name  Value: getting method of field name
+    //父类和子类可能定义了相同属性的getting方法，所以value是个list数组
     Map<String, List<Method>> conflictingGetters = new HashMap<>();
+    //all methods
     Method[] methods = getClassMethods(cls);
     for (Method method : methods) {
+      //if args length >0 ,that it is not getting method
       if (method.getParameterTypes().length > 0) {
         continue;
       }
+      // getting method name
       String name = method.getName();
       if ((name.startsWith("get") && name.length() > 3)
           || (name.startsWith("is") && name.length() > 2)) {
+        // get field name
         name = PropertyNamer.methodToProperty(name);
         addMethodConflict(conflictingGetters, name, method);
       }
     }
+    //解决getting冲突
     resolveGetterConflicts(conflictingGetters);
   }
 
+  /**
+   *
+   * @param conflictingGetters
+   */
   private void resolveGetterConflicts(Map<String, List<Method>> conflictingGetters) {
+    // 遍历每个属性，查找其最匹配的方法。因为子类可以覆写父类的方法，所以一个属性，可能对应多个 getting 方法
     for (Entry<String, List<Method>> entry : conflictingGetters.entrySet()) {
-      Method winner = null;
+      Method winner = null;//最匹配的方法
       String propName = entry.getKey();
       for (Method candidate : entry.getValue()) {
         if (winner == null) {
@@ -121,6 +165,7 @@ public class Reflector {
           }
         } else if (candidateType.isAssignableFrom(winnerType)) {
           // OK getter type is descendant
+          //符合选择子类。因为子类可以修改放大返回值。例如，父类的一个方法的返回值为 List ，子类对该方法的返回值可以覆写为 ArrayList
         } else if (winnerType.isAssignableFrom(candidateType)) {
           winner = candidate;
         } else {
@@ -177,6 +222,7 @@ public class Reflector {
         }
         if (exception == null) {
           try {
+            // 选择一个更加匹配的
             match = pickBetterSetter(match, setter, propName);
           } catch (ReflectionException e) {
             // there could still be the 'best match'
@@ -238,6 +284,10 @@ public class Reflector {
     return result;
   }
 
+  /**
+   * 有些 field ，不存在对应的 setting 或 getting 方法，所以直接使用对应的 field ，而不是方法
+   * @param clazz
+   */
   private void addFields(Class<?> clazz) {
     Field[] fields = clazz.getDeclaredFields();
     for (Field field : fields) {
@@ -254,6 +304,7 @@ public class Reflector {
         addGetField(field);
       }
     }
+    // 递归，处理父类
     if (clazz.getSuperclass() != null) {
       addFields(clazz.getSuperclass());
     }
@@ -323,6 +374,12 @@ public class Reflector {
     }
   }
 
+  /**
+   *
+   * @param method
+   * @return returnType#方法名:参数名1,参数名2,参数名3
+   * 例如：void#checkPackageAccess:java.lang.ClassLoader,boolean
+   */
   private String getSignature(Method method) {
     StringBuilder sb = new StringBuilder();
     Class<?> returnType = method.getReturnType();

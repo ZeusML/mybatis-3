@@ -161,6 +161,7 @@ public class BeanWrapper extends BaseWrapper {
     try {
       Invoker method = metaClass.getGetInvoker(prop.getName());
       try {
+        //通过对应的get方法获取对应的值
         return method.invoke(object, NO_ARGUMENTS);
       } catch (Throwable t) {
         throw ExceptionUtil.unwrapThrowable(t);

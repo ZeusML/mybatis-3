@@ -29,6 +29,8 @@ import org.apache.ibatis.reflection.wrapper.ObjectWrapperFactory;
 
 /**
  * @author Clinton Begin
+ * 对象元数据，提供了对象的属性值的获得和设置等等方法
+ * 对 BaseWrapper 操作的进一步增强
  */
 public class MetaObject {
 
@@ -47,6 +49,7 @@ public class MetaObject {
     if (object instanceof ObjectWrapper) {
       this.objectWrapper = (ObjectWrapper) object;
     } else if (objectWrapperFactory.hasWrapperFor(object)) {
+      //默认情况下的 DefaultObjectWrapperFactory 未实现任何逻辑，所以这块逻辑相当于暂时不起作用。如果想要起作用，需要自定义 ObjectWrapperFactory 的实现类。
       this.objectWrapper = objectWrapperFactory.getWrapperFor(this, object);
     } else if (object instanceof Map) {
       this.objectWrapper = new MapWrapper(this, (Map) object);
@@ -59,6 +62,7 @@ public class MetaObject {
 
   public static MetaObject forObject(Object object, ObjectFactory objectFactory, ObjectWrapperFactory objectWrapperFactory, ReflectorFactory reflectorFactory) {
     if (object == null) {
+      //为空的情况下，返回 SystemMetaObject.NULL_META_OBJECT
       return SystemMetaObject.NULL_META_OBJECT;
     } else {
       return new MetaObject(object, objectFactory, objectWrapperFactory, reflectorFactory);
