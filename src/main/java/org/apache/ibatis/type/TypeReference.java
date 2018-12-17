@@ -21,6 +21,10 @@ import java.lang.reflect.Type;
 /**
  * References a generic type.
  *
+ * 引用泛型抽象类。目的很简单，就是解析类上定义的泛型
+ *
+ * 举个例子，IntegerTypeHandler解析后的结果 rawType 为 Integer
+ *
  * @param <T> the referenced type
  * @since 3.1.0
  * @author Simone Tripodi

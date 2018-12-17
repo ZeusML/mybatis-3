@@ -24,6 +24,9 @@ import java.util.Date;
 
 /**
  * @author Clinton Begin
+ * Date 类型的 TypeHandler 实现类
+ *
+ * java.util.Date 和 java.sql.Timestamp 的互相转换。
  */
 public class DateTypeHandler extends BaseTypeHandler<Date> {
 
