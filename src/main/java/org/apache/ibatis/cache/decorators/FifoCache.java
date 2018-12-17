@@ -23,7 +23,11 @@ import org.apache.ibatis.cache.Cache;
 
 /**
  * FIFO (first in, first out) cache decorator
+ * 实现 Cache 接口，基于先进先出的淘汰机制的 Cache 实现类
  *
+ * 目前 FifoCache 的逻辑实现上，有一定的问题，主要有两点。
+ * <1> 处，如果重复添加一个缓存，那么在 keyList 里会存储两个，占用了缓存上限的两个名额。
+ * <2> 处，在移除指定缓存时，不会移除 keyList 里占用的一个名额。
  * @author Clinton Begin
  */
 public class FifoCache implements Cache {

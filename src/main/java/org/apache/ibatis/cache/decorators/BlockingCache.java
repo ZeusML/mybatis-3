@@ -30,14 +30,22 @@ import org.apache.ibatis.cache.CacheException;
  * Simple and inefficient version of EhCache's BlockingCache decorator.
  * It sets a lock over a cache key when the element is not found in cache.
  * This way, other threads will wait until this element is filled instead of hitting the database.
+ *
+ * 实现 Cache 接口，阻塞的 Cache 实现类
  * 
  * @author Eduardo Macarron
  *
  */
 public class BlockingCache implements Cache {
 
+  /**
+   * 阻塞等待超时时间
+   */
   private long timeout;
   private final Cache delegate;
+  /**
+   * 缓存键与 ReentrantLock 对象的映射
+   */
   private final ConcurrentHashMap<Object, ReentrantLock> locks;
 
   public BlockingCache(Cache delegate) {
@@ -77,6 +85,7 @@ public class BlockingCache implements Cache {
   @Override
   public Object removeObject(Object key) {
     // despite of its name, this method is called only to release locks
+    //和方法名字有所“冲突”，不会移除对应的缓存，只会移除锁
     releaseLock(key);
     return null;
   }

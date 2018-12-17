@@ -24,6 +24,8 @@ import org.apache.ibatis.cache.Cache;
 /**
  * Lru (least recently used) cache decorator
  *
+ * 实现 Cache 接口，基于最少使用的淘汰机制的 Cache 实现类
+ *
  * @author Clinton Begin
  */
 public class LruCache implements Cache {
@@ -48,9 +50,12 @@ public class LruCache implements Cache {
   }
 
   public void setSize(final int size) {
+    //当参数accessOrder为true时，即会按照访问顺序排序，最近访问的放在最前，最早访问的放在后面
     keyMap = new LinkedHashMap<Object, Object>(size, .75F, true) {
       private static final long serialVersionUID = 4267176411845948333L;
 
+      // LinkedHashMap自带的判断是否删除最老的元素方法，默认返回false，即不删除老数据
+      // 我们要做的就是重写这个方法，当满足一定条件时删除老数据
       @Override
       protected boolean removeEldestEntry(Map.Entry<Object, Object> eldest) {
         boolean tooBig = size() > size;
