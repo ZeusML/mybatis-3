@@ -39,6 +39,9 @@ public class UnpooledDataSource implements DataSource {
   
   private ClassLoader driverClassLoader;
   private Properties driverProperties;
+  /**
+   * 已注册的 Driver 映射
+   */
   private static Map<String, Driver> registeredDrivers = new ConcurrentHashMap<>();
 
   private String driver;
@@ -50,6 +53,7 @@ public class UnpooledDataSource implements DataSource {
   private Integer defaultTransactionIsolationLevel;
 
   static {
+    // 初始化 registeredDrivers
     Enumeration<Driver> drivers = DriverManager.getDrivers();
     while (drivers.hasMoreElements()) {
       Driver driver = drivers.nextElement();
@@ -193,17 +197,22 @@ public class UnpooledDataSource implements DataSource {
     if (password != null) {
       props.setProperty("password", password);
     }
+    // 执行获得 Connection 连接
     return doGetConnection(props);
   }
 
   private Connection doGetConnection(Properties properties) throws SQLException {
+    //初始化Drvier
     initializeDriver();
+    //获得connection
     Connection connection = DriverManager.getConnection(url, properties);
+    //配置connection
     configureConnection(connection);
     return connection;
   }
 
   private synchronized void initializeDriver() throws SQLException {
+    //判断是否已存在改driver
     if (!registeredDrivers.containsKey(driver)) {
       Class<?> driverType;
       try {
@@ -215,6 +224,7 @@ public class UnpooledDataSource implements DataSource {
         // DriverManager requires the driver to be loaded via the system ClassLoader.
         // http://www.kfu.com/~nsayer/Java/dyn-jdbc.html
         Driver driverInstance = (Driver)driverType.newInstance();
+        // 创建 DriverProxy 对象，并注册到 DriverManager 中
         DriverManager.registerDriver(new DriverProxy(driverInstance));
         registeredDrivers.put(driver, driverInstance);
       } catch (Exception e) {
@@ -224,9 +234,11 @@ public class UnpooledDataSource implements DataSource {
   }
 
   private void configureConnection(Connection conn) throws SQLException {
+    //设置是否自动提交
     if (autoCommit != null && autoCommit != conn.getAutoCommit()) {
       conn.setAutoCommit(autoCommit);
     }
+    //设置隔离级别
     if (defaultTransactionIsolationLevel != null) {
       conn.setTransactionIsolation(defaultTransactionIsolationLevel);
     }
@@ -271,6 +283,7 @@ public class UnpooledDataSource implements DataSource {
 
     // @Override only valid jdk7+
     public Logger getParentLogger() {
+      //使用 MyBatis 自定义的 Logger 对象。
       return Logger.getLogger(Logger.GLOBAL_LOGGER_NAME);
     }
   }
