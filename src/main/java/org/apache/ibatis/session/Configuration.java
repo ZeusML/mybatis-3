@@ -629,7 +629,9 @@ public class Configuration {
 
   public void addResultMap(ResultMap rm) {
     resultMaps.put(rm.getId(), rm);
+    // 遍历全局的 ResultMap 集合，若其拥有 Discriminator 对象，则判断是否强制标记为有内嵌的 ResultMap
     checkLocallyForDiscriminatedNestedResultMaps(rm);
+    // 若传入的 ResultMap 不存在内嵌 ResultMap 并且有 Discriminator ，则判断是否需要强制表位有内嵌的 ResultMap
     checkGloballyForDiscriminatedNestedResultMaps(rm);
   }
 
@@ -730,6 +732,9 @@ public class Configuration {
     return sqlFragments;
   }
 
+  /**
+   * 拦截器链
+   */
   public void addInterceptor(Interceptor interceptor) {
     interceptorChain.addInterceptor(interceptor);
   }
@@ -839,12 +844,14 @@ public class Configuration {
 
   // Slow but a one time cost. A better solution is welcome.
   protected void checkGloballyForDiscriminatedNestedResultMaps(ResultMap rm) {
+    // 如果传入的 ResultMap 有内嵌的 ResultMap
     if (rm.hasNestedResultMaps()) {
       for (Map.Entry<String, ResultMap> entry : resultMaps.entrySet()) {
         Object value = entry.getValue();
         if (value instanceof ResultMap) {
           ResultMap entryResultMap = (ResultMap) value;
           if (!entryResultMap.hasNestedResultMaps() && entryResultMap.getDiscriminator() != null) {
+            // 如果引用的 ResultMap 存在内嵌 ResultMap ，则标记传入的 ResultMap 存在内嵌 ResultMap
             Collection<String> discriminatedResultMapNames = entryResultMap.getDiscriminator().getDiscriminatorMap().values();
             if (discriminatedResultMapNames.contains(rm.getId())) {
               entryResultMap.forceNestedResultMaps();
@@ -857,6 +864,7 @@ public class Configuration {
 
   // Slow but a one time cost. A better solution is welcome.
   protected void checkLocallyForDiscriminatedNestedResultMaps(ResultMap rm) {
+    // 如果传入的 ResultMap 有内嵌的 ResultMap
     if (!rm.hasNestedResultMaps() && rm.getDiscriminator() != null) {
       for (Map.Entry<String, String> entry : rm.getDiscriminator().getDiscriminatorMap().entrySet()) {
         String discriminatedResultMapName = entry.getValue();

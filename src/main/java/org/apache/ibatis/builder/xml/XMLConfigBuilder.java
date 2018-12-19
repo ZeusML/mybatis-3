@@ -52,9 +52,21 @@ import org.apache.ibatis.type.JdbcType;
  */
 public class XMLConfigBuilder extends BaseBuilder {
 
+  /**
+   * 是否已解析
+   */
   private boolean parsed;
+  /**
+   * 基于 Java XPath 解析器
+   */
   private final XPathParser parser;
+  /**
+   * 环境
+   */
   private String environment;
+  /**
+   * ReflectorFactory 对象
+   */
   private final ReflectorFactory localReflectorFactory = new DefaultReflectorFactory();
 
   public XMLConfigBuilder(Reader reader) {
@@ -82,8 +94,10 @@ public class XMLConfigBuilder extends BaseBuilder {
   }
 
   private XMLConfigBuilder(XPathParser parser, String environment, Properties props) {
+    //创建 Configuration 对象
     super(new Configuration());
     ErrorContext.instance().resource("SQL Mapper Configuration");
+    //设置 Configuration 的 variables 属性
     this.configuration.setVariables(props);
     this.parsed = false;
     this.environment = environment;
@@ -95,6 +109,7 @@ public class XMLConfigBuilder extends BaseBuilder {
       throw new BuilderException("Each XMLConfigBuilder can only be used once.");
     }
     parsed = true;
+    //解析 XML configuration 节点
     parseConfiguration(parser.evalNode("*[local-name()='configuration']"));
     return configuration;
   }
@@ -102,19 +117,31 @@ public class XMLConfigBuilder extends BaseBuilder {
   private void parseConfiguration(XNode root) {
     try {
       //issue #117 read properties first
+      // 解析 <properties /> 标签
       propertiesElement(root.evalNode("*[local-name()='properties']"));
+      //解析 <settings /> 标签
       Properties settings = settingsAsProperties(root.evalNode("*[local-name()='settings']"));
+      //加载自定义 VFS 实现类
       loadCustomVfs(settings);
+      //加载自定义日志
       loadCustomLogImpl(settings);
+      //解析 <typeAliases /> 标签
       typeAliasesElement(root.evalNode("*[local-name()='typeAliases']"));
+      //解析 <plugins /> 标签
       pluginElement(root.evalNode("*[local-name()='plugins']"));
+      //解析 <objectFactory /> 节点
       objectFactoryElement(root.evalNode("*[local-name()='objectFactory']"));
+      //解析 <objectWrapperFactory /> 节点
       objectWrapperFactoryElement(root.evalNode("*[local-name()='objectWrapperFactory']"));
+      //解析 <reflectorFactory /> 节点
       reflectorFactoryElement(root.evalNode("*[local-name()='reflectorFactory']"));
       settingsElement(settings);
       // read it after objectFactory and objectWrapperFactory issue #631
+      //解析 <environments /> 标签
       environmentsElement(root.evalNode("*[local-name()='environments']"));
+      //解析databaseIdProvider
       databaseIdProviderElement(root.evalNode("*[local-name()='databaseIdProvider']"));
+      //解析 <typeHandlers /> 标签
       typeHandlerElement(root.evalNode("*[local-name()='typeHandlers']"));
       mapperElement(root.evalNode("*[local-name()='mappers']"));
     } catch (Exception e) {
@@ -128,6 +155,7 @@ public class XMLConfigBuilder extends BaseBuilder {
     }
     Properties props = context.getChildrenAsProperties();
     // Check that all settings are known to the configuration class
+    // 校验每个属性，在 Configuration 中，有相应的 setting 方法，否则抛出 BuilderException 异常
     MetaClass metaConfig = MetaClass.forClass(Configuration.class, localReflectorFactory);
     for (Object key : props.keySet()) {
       if (!metaConfig.hasSetter(String.valueOf(key))) {
@@ -140,11 +168,13 @@ public class XMLConfigBuilder extends BaseBuilder {
   private void loadCustomVfs(Properties props) throws ClassNotFoundException {
     String value = props.getProperty("vfsImpl");
     if (value != null) {
+      // 使用 , 作为分隔符，拆成 VFS 类名的数组
       String[] clazzes = value.split(",");
       for (String clazz : clazzes) {
         if (!clazz.isEmpty()) {
           @SuppressWarnings("unchecked")
           Class<? extends VFS> vfsImpl = (Class<? extends VFS>)Resources.classForName(clazz);
+          // 设置到 Configuration 中
           configuration.setVfsImpl(vfsImpl);
         }
       }
@@ -159,10 +189,19 @@ public class XMLConfigBuilder extends BaseBuilder {
   private void typeAliasesElement(XNode parent) {
     if (parent != null) {
       for (XNode child : parent.getChildren()) {
+        /**
+         * 指定为包的情况下，注册包下的每个类
+         * <typeAliases>
+         *   <package name="domain.blog"/>
+         * </typeAliases>
+         */
         if ("package".equals(child.getName())) {
           String typeAliasPackage = child.getStringAttribute("name");
           configuration.getTypeAliasRegistry().registerAliases(typeAliasPackage);
         } else {
+          /**
+           * <typeAlias alias="Author" type="org.apache.ibatis.domain.blog.Author"/>
+           */
           String alias = child.getStringAttribute("alias");
           String type = child.getStringAttribute("type");
           try {
@@ -185,6 +224,7 @@ public class XMLConfigBuilder extends BaseBuilder {
       for (XNode child : parent.getChildren()) {
         String interceptor = child.getStringAttribute("interceptor");
         Properties properties = child.getChildrenAsProperties();
+        //创建 Interceptor 对象，并设置属性
         Interceptor interceptorInstance = (Interceptor) resolveClass(interceptor).newInstance();
         interceptorInstance.setProperties(properties);
         configuration.addInterceptor(interceptorInstance);
@@ -220,12 +260,15 @@ public class XMLConfigBuilder extends BaseBuilder {
 
   private void propertiesElement(XNode context) throws Exception {
     if (context != null) {
+      // 读取子标签们，为 Properties 对象
       Properties defaults = context.getChildrenAsProperties();
+      // 读取 resource 和 url 属性
       String resource = context.getStringAttribute("resource");
       String url = context.getStringAttribute("url");
-      if (resource != null && url != null) {
+      if (resource != null && url != null) {// resource 和 url 都存在的情况下，抛出 BuilderException 异常
         throw new BuilderException("The properties element cannot specify both a URL and a resource based property file reference.  Please specify one or the other.");
       }
+      // 读取本地 Properties 配置文件到 defaults 中
       if (resource != null) {
         defaults.putAll(Resources.getResourceAsProperties(resource));
       } else if (url != null) {
@@ -240,6 +283,10 @@ public class XMLConfigBuilder extends BaseBuilder {
     }
   }
 
+  /**
+   * 赋值 <settings /> 到 Configuration 属性
+   * @param props
+   */
   private void settingsElement(Properties props) {
     configuration.setAutoMappingBehavior(AutoMappingBehavior.valueOf(props.getProperty("autoMappingBehavior", "PARTIAL")));
     configuration.setAutoMappingUnknownColumnBehavior(AutoMappingUnknownColumnBehavior.valueOf(props.getProperty("autoMappingUnknownColumnBehavior", "NONE")));
@@ -275,6 +322,7 @@ public class XMLConfigBuilder extends BaseBuilder {
       }
       for (XNode child : context.getChildren()) {
         String id = child.getStringAttribute("id");
+        //判断 environment 是否匹配
         if (isSpecifiedEnvironment(id)) {
           TransactionFactory txFactory = transactionManagerElement(child.evalNode("*[local-name()='transactionManager']"));
           DataSourceFactory dsFactory = dataSourceElement(child.evalNode("*[local-name()='dataSource']"));
@@ -311,6 +359,7 @@ public class XMLConfigBuilder extends BaseBuilder {
     if (context != null) {
       String type = context.getStringAttribute("type");
       Properties props = context.getChildrenAsProperties();
+      // 获得 TransactionFactory 的类
       TransactionFactory factory = (TransactionFactory) resolveClass(type).newInstance();
       factory.setProperties(props);
       return factory;
@@ -368,7 +417,9 @@ public class XMLConfigBuilder extends BaseBuilder {
           String mapperClass = child.getStringAttribute("class");
           if (resource != null && url == null && mapperClass == null) {
             ErrorContext.instance().resource(resource);
+            // 获得 resource 的 InputStream 对象
             InputStream inputStream = Resources.getResourceAsStream(resource);
+            // 创建 XMLMapperBuilder 对象
             XMLMapperBuilder mapperParser = new XMLMapperBuilder(inputStream, configuration, resource, configuration.getSqlFragments());
             mapperParser.parse();
           } else if (resource == null && url != null && mapperClass == null) {

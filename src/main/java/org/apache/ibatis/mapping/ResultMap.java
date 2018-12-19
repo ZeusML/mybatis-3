@@ -90,8 +90,11 @@ public class ResultMap {
       resultMap.propertyResultMappings = new ArrayList<>();
       final List<String> constructorArgNames = new ArrayList<>();
       for (ResultMapping resultMapping : resultMap.resultMappings) {
+        // 初始化 hasNestedQueries
         resultMap.hasNestedQueries = resultMap.hasNestedQueries || resultMapping.getNestedQueryId() != null;
+        // 初始化 hasNestedResultMaps
         resultMap.hasNestedResultMaps = resultMap.hasNestedResultMaps || (resultMapping.getNestedResultMapId() != null && resultMapping.getResultSet() == null);
+        // 添加到 mappedColumns
         final String column = resultMapping.getColumn();
         if (column != null) {
           resultMap.mappedColumns.add(column.toUpperCase(Locale.ENGLISH));
@@ -160,6 +163,14 @@ public class ResultMap {
       return null;
     }
 
+    /**
+     * 判断构造方法的参数类型是否符合
+     *
+     * @param constructorArgNames 构造方法的参数名数组
+     * @param paramTypes 构造方法的参数类型数组
+     * @param paramNames 声明的参数名数组
+     * @return 是否符合
+     */
     private boolean argTypesMatch(final List<String> constructorArgNames,
         Class<?>[] paramTypes, List<String> paramNames) {
       for (int i = 0; i < constructorArgNames.size(); i++) {
@@ -179,6 +190,14 @@ public class ResultMap {
       return true;
     }
 
+    /**
+     * 获得构造方法的参数名的数组
+     *
+     * 因为参数上会有 {@link Param} 注解，所以会使用注解上设置的名字
+     *
+     * @param constructor 构造方法
+     * @return 参数名数组
+     */
     private List<String> getArgNames(Constructor<?> constructor) {
       List<String> paramNames = new ArrayList<>();
       List<String> actualParamNames = null;

@@ -36,6 +36,7 @@ import java.lang.reflect.Type;
 import java.util.*;
 
 /**
+ * Mapper 方法。在 Mapper 接口中，每个定义的方法，对应一个 MapperMethod 对象。
  * @author Clinton Begin
  * @author Eduardo Macarron
  * @author Lasse Voss
@@ -221,9 +222,11 @@ public class MapperMethod {
     public SqlCommand(Configuration configuration, Class<?> mapperInterface, Method method) {
       final String methodName = method.getName();
       final Class<?> declaringClass = method.getDeclaringClass();
+      //获得 MappedStatement 对象
       MappedStatement ms = resolveMappedStatement(mapperInterface, methodName, declaringClass,
           configuration);
       if (ms == null) {
+        // 如果有 @Flush 注解，则标记为 FLUSH 类型
         if(method.getAnnotation(Flush.class) != null){
           name = null;
           type = SqlCommandType.FLUSH;
@@ -250,6 +253,7 @@ public class MapperMethod {
 
     private MappedStatement resolveMappedStatement(Class<?> mapperInterface, String methodName,
         Class<?> declaringClass, Configuration configuration) {
+      //${NAMESPACE_NAME}.${语句_ID}
       String statementId = mapperInterface.getName() + "." + methodName;
       if (configuration.hasStatement(statementId)) {
         return configuration.getMappedStatement(statementId);
@@ -274,7 +278,13 @@ public class MapperMethod {
     private final boolean returnsMany;
     private final boolean returnsMap;
     private final boolean returnsVoid;
+    /**
+     * 返回类型是否为 {@link org.apache.ibatis.cursor.Cursor}
+     */
     private final boolean returnsCursor;
+    /**
+     * 返回类型是否为 {@link java.util.Optional}
+     */
     private final boolean returnsOptional;
     private final Class<?> returnType;
     private final String mapKey;
@@ -283,6 +293,7 @@ public class MapperMethod {
     private final ParamNameResolver paramNameResolver;
 
     public MethodSignature(Configuration configuration, Class<?> mapperInterface, Method method) {
+      // 初始化 returnType 属性
       Type resolvedReturnType = TypeParameterResolver.resolveReturnType(method, mapperInterface);
       if (resolvedReturnType instanceof Class<?>) {
         this.returnType = (Class<?>) resolvedReturnType;
@@ -291,6 +302,7 @@ public class MapperMethod {
       } else {
         this.returnType = method.getReturnType();
       }
+      //初始化属性
       this.returnsVoid = void.class.equals(this.returnType);
       this.returnsMany = configuration.getObjectFactory().isCollection(this.returnType) || this.returnType.isArray();
       this.returnsCursor = Cursor.class.equals(this.returnType);

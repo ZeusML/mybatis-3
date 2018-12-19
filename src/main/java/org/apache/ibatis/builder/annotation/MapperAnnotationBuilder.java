@@ -97,11 +97,20 @@ import org.apache.ibatis.type.UnknownTypeHandler;
  */
 public class MapperAnnotationBuilder {
 
+  /**
+   * SQL 操作注解集合
+   */
   private static final Set<Class<? extends Annotation>> SQL_ANNOTATION_TYPES = new HashSet<>();
+  /**
+   * SQL 操作提供者注解集合
+   */
   private static final Set<Class<? extends Annotation>> SQL_PROVIDER_ANNOTATION_TYPES = new HashSet<>();
 
   private final Configuration configuration;
   private final MapperBuilderAssistant assistant;
+  /**
+   * Mapper 接口类
+   */
   private final Class<?> type;
 
   static {
@@ -126,11 +135,17 @@ public class MapperAnnotationBuilder {
   public void parse() {
     String resource = type.toString();
     if (!configuration.isResourceLoaded(resource)) {
+      //加载对应的 XML Mapper
       loadXmlResource();
+      //标记该 Mapper 接口已经加载过
       configuration.addLoadedResource(resource);
+      // 设置 namespace 属性
       assistant.setCurrentNamespace(type.getName());
+      //解析 @CacheNamespace 注解
       parseCache();
+      //解析 @CacheNamespaceRef 注解
       parseCacheRef();
+      //遍历每个方法，解析其上的注解
       Method[] methods = type.getMethods();
       for (Method method : methods) {
         try {
@@ -143,6 +158,7 @@ public class MapperAnnotationBuilder {
         }
       }
     }
+    // 解析待定的方法
     parsePendingMethods();
   }
 
@@ -165,7 +181,10 @@ public class MapperAnnotationBuilder {
     // Spring may not know the real resource name so we check a flag
     // to prevent loading again a resource twice
     // this flag is set at XMLMapperBuilder#bindMapperForNamespace
+    //判断 Mapper XML 是否已经加载过，如果加载过，就不加载了。
+    //此处，是为了避免和 XMLMapperBuilder#parse() 方法冲突，重复解析
     if (!configuration.isResourceLoaded("namespace:" + type.getName())) {
+      //获得 InputStream 对象
       String xmlResource = type.getName().replace('.', '/') + ".xml";
       // #1347
       InputStream inputStream = type.getResourceAsStream("/" + xmlResource);
@@ -177,6 +196,7 @@ public class MapperAnnotationBuilder {
           // ignore, resource is not required
         }
       }
+      //创建 XMLMapperBuilder 对象，执行解析
       if (inputStream != null) {
         XMLMapperBuilder xmlParser = new XMLMapperBuilder(inputStream, assistant.getConfiguration(), xmlResource, configuration.getSqlFragments(), type.getName());
         xmlParser.parse();
@@ -184,9 +204,11 @@ public class MapperAnnotationBuilder {
     }
   }
 
+  //解析 @CacheNamespace 注解
   private void parseCache() {
     CacheNamespace cacheDomain = type.getAnnotation(CacheNamespace.class);
     if (cacheDomain != null) {
+      //获得各种属性
       Integer size = cacheDomain.size() == 0 ? null : cacheDomain.size();
       Long flushInterval = cacheDomain.flushInterval() == 0 ? null : cacheDomain.flushInterval();
       Properties props = convertToProperties(cacheDomain.properties());
@@ -194,6 +216,9 @@ public class MapperAnnotationBuilder {
     }
   }
 
+  /**
+   * 将 @Property 注解数组，转换成 Properties 对象。
+   */
   private Properties convertToProperties(Property[] properties) {
     if (properties.length == 0) {
       return null;
@@ -206,6 +231,9 @@ public class MapperAnnotationBuilder {
     return props;
   }
 
+  /**
+   * 解析 @CacheNamespaceRef 注解
+   */
   private void parseCacheRef() {
     CacheNamespaceRef cacheDomainRef = type.getAnnotation(CacheNamespaceRef.class);
     if (cacheDomainRef != null) {
@@ -217,6 +245,7 @@ public class MapperAnnotationBuilder {
       if (refType != void.class && !refName.isEmpty()) {
         throw new BuilderException("Cannot use both value() and name() attribute in the @CacheNamespaceRef");
       }
+      //获得最终的 namespace 属性
       String namespace = (refType != void.class) ? refType.getName() : refName;
       try {
         assistant.useCacheRef(namespace);
@@ -473,14 +502,17 @@ public class MapperAnnotationBuilder {
 
   private SqlSource getSqlSourceFromAnnotations(Method method, Class<?> parameterType, LanguageDriver languageDriver) {
     try {
+      //获得方法上的 SQL_ANNOTATION_TYPES 和 SQL_PROVIDER_ANNOTATION_TYPES 对应的类型
       Class<? extends Annotation> sqlAnnotationType = getSqlAnnotationType(method);
       Class<? extends Annotation> sqlProviderAnnotationType = getSqlProviderAnnotationType(method);
       if (sqlAnnotationType != null) {
         if (sqlProviderAnnotationType != null) {
           throw new BindingException("You cannot supply both a static SQL and SqlProvider to method named " + method.getName());
         }
+        //获得 SQL_ANNOTATION_TYPES 对应的注解
         Annotation sqlAnnotation = method.getAnnotation(sqlAnnotationType);
         final String[] strings = (String[]) sqlAnnotation.getClass().getMethod("value").invoke(sqlAnnotation);
+        //创建 SqlSource 对象
         return buildSqlSourceFromStrings(strings, parameterType, languageDriver);
       } else if (sqlProviderAnnotationType != null) {
         Annotation sqlProviderAnnotation = method.getAnnotation(sqlProviderAnnotationType);
