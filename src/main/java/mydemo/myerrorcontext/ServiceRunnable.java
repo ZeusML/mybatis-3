@@ -1,0 +1,34 @@
+ /*
+  * Copyright (c) 2018年12月20日  by XuanWu Wireless Technology Co., Ltd
+  *             All rights reserved
+  */
+ package mydemo.myerrorcontext;
+
+ /**
+  * @author <a href="mailto:zhaominglin@wxchina.com">minglin.Zhao</a>
+  * @Description 业务运行类
+  * @Date 2018/12/20
+  * @Version 1.0.0
+  */
+ public class ServiceRunnable implements Runnable {
+
+     private Object[] params;
+
+     public ServiceRunnable(Object... params) {
+         this.params = params;
+     }
+
+     @Override
+     public void run() {
+         try {
+             doQuery();
+         } catch (Throwable e) {
+             throw ExceptionFactory.wrapException(e);
+         }
+     }
+
+     private void doQuery() {
+         /** 模拟异常 */
+         System.out.println(1 / 0);
+     }
+ }
