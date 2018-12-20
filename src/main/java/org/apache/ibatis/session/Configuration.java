@@ -570,8 +570,10 @@ public class Configuration {
   }
 
   public Executor newExecutor(Transaction transaction, ExecutorType executorType) {
-    executorType = executorType == null ? defaultExecutorType : executorType;
-    executorType = executorType == null ? ExecutorType.SIMPLE : executorType;
+    //value 有三种类型：SIMPLE REUSE BATCH
+    //<setting name="defaultExecutorType" value="" />
+    executorType = executorType == null ? defaultExecutorType : executorType;// 使用默认
+    executorType = executorType == null ? ExecutorType.SIMPLE : executorType;// 使用 ExecutorType.SIMPLE
     Executor executor;
     if (ExecutorType.BATCH == executorType) {
       executor = new BatchExecutor(this, transaction);
@@ -583,6 +585,7 @@ public class Configuration {
     if (cacheEnabled) {
       executor = new CachingExecutor(executor);
     }
+    //应用插件
     executor = (Executor) interceptorChain.pluginAll(executor);
     return executor;
   }

@@ -32,7 +32,8 @@ import org.apache.ibatis.logging.LogFactory;
  * Entries are sent to the cache when commit is called or discarded if the Session is rolled back. 
  * Blocking cache support has been added. Therefore any get() that returns a cache miss 
  * will be followed by a put() so any lock associated with the key can be released. 
- * 
+ *
+ * 实现 Cache 接口，支持事务的 Cache 实现类，主要用于二级缓存中
  * @author Clinton Begin
  * @author Eduardo Macarron
  */
@@ -40,9 +41,26 @@ public class TransactionalCache implements Cache {
 
   private static final Log log = LogFactory.getLog(TransactionalCache.class);
 
+  /**
+   * 委托的 Cache 对象。
+   *
+   * 实际上，就是二级缓存 Cache 对象。
+   */
   private final Cache delegate;
+  /**
+   * 提交时，清空 {@link #delegate}
+   *
+   * 初始时，该值为 false
+   * 清理后{@link #clear()} 时，该值为 true ，表示持续处于清空状态
+   */
   private boolean clearOnCommit;
+  /**
+   * 待提交的 KV 映射
+   */
   private final Map<Object, Object> entriesToAddOnCommit;
+  /**
+   * 查找不到的 KEY 集合
+   */
   private final Set<Object> entriesMissedInCache;
 
   public TransactionalCache(Cache delegate) {
@@ -70,6 +88,7 @@ public class TransactionalCache implements Cache {
       entriesMissedInCache.add(key);
     }
     // issue #146
+    //如果 clearOnCommit 为 true ，表示处于持续清空状态，则返回 null
     if (clearOnCommit) {
       return null;
     } else {
@@ -92,17 +111,25 @@ public class TransactionalCache implements Cache {
     return null;
   }
 
+  /**
+   * 该方法，不会清空 delegate 的缓存。真正的清空，在事务提交时。
+   */
   @Override
   public void clear() {
+    //标记 clearOnCommit 为 true 。
     clearOnCommit = true;
+    //清空 entriesToAddOnCommit
     entriesToAddOnCommit.clear();
   }
 
   public void commit() {
+    //如果 clearOnCommit 为 true ，则清空 delegate 缓存
     if (clearOnCommit) {
       delegate.clear();
     }
+    //将 entriesToAddOnCommit、entriesMissedInCache 刷入 delegate 中
     flushPendingEntries();
+    // 重置
     reset();
   }
 
@@ -111,6 +138,9 @@ public class TransactionalCache implements Cache {
     reset();
   }
 
+  /**
+   * 一个 Executor 可以提交多次事务，而 TransactionalCache 需要被重用，那么就需要重置回初始状态。
+   */
   private void reset() {
     clearOnCommit = false;
     entriesToAddOnCommit.clear();
@@ -129,6 +159,7 @@ public class TransactionalCache implements Cache {
   }
 
   private void unlockMissedEntries() {
+    //从 delegate 移除出 entriesMissedInCache
     for (Object entry : entriesMissedInCache) {
       try {
         delegate.removeObject(entry);

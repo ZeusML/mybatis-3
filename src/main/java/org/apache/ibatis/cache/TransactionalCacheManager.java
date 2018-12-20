@@ -21,7 +21,10 @@ import java.util.Map;
 import org.apache.ibatis.cache.decorators.TransactionalCache;
 
 /**
+ * TransactionalCache 管理器
  * @author Clinton Begin
+ *
+ * 在一次的事务过程中，可能有多个不同的 MappedStatement 操作，而它们可能对应多个 Cache 对象。
  */
 public class TransactionalCacheManager {
 
@@ -31,14 +34,21 @@ public class TransactionalCacheManager {
     getTransactionalCache(cache).clear();
   }
 
+  // 首先，获得 Cache 对应的 TransactionalCache 对象
+  // 然后从 TransactionalCache 对象中，获得 key 对应的值
   public Object getObject(Cache cache, CacheKey key) {
     return getTransactionalCache(cache).getObject(key);
   }
-  
+
+  // 首先，获得 Cache 对应的 TransactionalCache 对象
+  // 然后，添加 KV 到 TransactionalCache 对象中
   public void putObject(Cache cache, CacheKey key, Object value) {
     getTransactionalCache(cache).putObject(key, value);
   }
 
+  /**
+   * 提交所有 TransactionalCache
+   */
   public void commit() {
     for (TransactionalCache txCache : transactionalCaches.values()) {
       txCache.commit();

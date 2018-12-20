@@ -29,6 +29,11 @@ public class BatchResult {
   private final String sql;
   private final List<Object> parameterObjects;
 
+  /**
+   * 更新数量集合
+   *
+   * 每一个元素，对应一次操作的更新数量
+   */
   private int[] updateCounts;
 
   public BatchResult(MappedStatement mappedStatement, String sql) {

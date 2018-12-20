@@ -34,6 +34,11 @@ import org.apache.ibatis.session.RowBounds;
 import org.apache.ibatis.transaction.Transaction;
 
 /**
+ * 继承 BaseExecutor 抽象类，可重用的 Executor 实现类
+ *
+ * 每次开始读或写操作，优先从缓存中获取对应的 Statement 对象。如果不存在，才进行创建。
+ * 执行完成后，不关闭该 Statement 对象。
+ * 其它的，和 SimpleExecutor 是一致的。
  * @author Clinton Begin
  */
 public class ReuseExecutor extends BaseExecutor {
@@ -82,7 +87,9 @@ public class ReuseExecutor extends BaseExecutor {
     BoundSql boundSql = handler.getBoundSql();
     String sql = boundSql.getSql();
     if (hasStatementFor(sql)) {
+      //从缓存中获得 Statement 或 PrepareStatement 对象
       stmt = getStatement(sql);
+      //设置事务超时时间
       applyTransactionTimeout(stmt);
     } else {
       Connection connection = getConnection(statementLog);
