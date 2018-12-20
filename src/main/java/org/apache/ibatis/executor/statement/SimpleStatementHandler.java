@@ -47,9 +47,12 @@ public class SimpleStatementHandler extends BaseStatementHandler {
     Object parameterObject = boundSql.getParameterObject();
     KeyGenerator keyGenerator = mappedStatement.getKeyGenerator();
     int rows;
+    //如果是 Jdbc3KeyGenerator 类型
     if (keyGenerator instanceof Jdbc3KeyGenerator) {
+      //执行写操作
       statement.execute(sql, Statement.RETURN_GENERATED_KEYS);
       rows = statement.getUpdateCount();
+      //执行 keyGenerator 的后置处理逻辑
       keyGenerator.processAfter(executor, mappedStatement, statement, parameterObject);
     } else if (keyGenerator instanceof SelectKeyGenerator) {
       statement.execute(sql);
@@ -79,6 +82,7 @@ public class SimpleStatementHandler extends BaseStatementHandler {
   public <E> Cursor<E> queryCursor(Statement statement) throws SQLException {
     String sql = boundSql.getSql();
     statement.execute(sql);
+    //处理返回的 Cursor 结果
     return resultSetHandler.handleCursorResultSets(statement);
   }
 
@@ -91,6 +95,10 @@ public class SimpleStatementHandler extends BaseStatementHandler {
     }
   }
 
+  /**
+   * 空，因为无需做占位符参数的处理。
+   * @param statement Statement 对象
+   */
   @Override
   public void parameterize(Statement statement) {
     // N/A
