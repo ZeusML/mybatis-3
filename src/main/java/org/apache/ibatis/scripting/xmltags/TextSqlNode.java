@@ -24,9 +24,15 @@ import org.apache.ibatis.type.SimpleTypeRegistry;
 
 /**
  * @author Clinton Begin
+ *
+ * 实现 SqlNode 接口，文本的 SqlNode 实现类。
+ * 相比 StaticTextSqlNode 的实现来说，TextSqlNode 不确定是否为静态文本，所以提供 #isDynamic() 方法，进行判断是否为动态文本
  */
 public class TextSqlNode implements SqlNode {
   private final String text;
+  /**
+   * 目前该属性只在单元测试中使用，暂时无视
+   */
   private final Pattern injectionFilter;
 
   public TextSqlNode(String text) {
@@ -39,6 +45,7 @@ public class TextSqlNode implements SqlNode {
   }
   
   public boolean isDynamic() {
+    // 创建 DynamicCheckerTokenParser 对象
     DynamicCheckerTokenParser checker = new DynamicCheckerTokenParser();
     GenericTokenParser parser = createParser(checker);
     parser.parse(text);

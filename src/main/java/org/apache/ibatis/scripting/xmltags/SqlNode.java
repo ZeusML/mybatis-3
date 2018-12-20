@@ -19,5 +19,10 @@ package org.apache.ibatis.scripting.xmltags;
  * @author Clinton Begin
  */
 public interface SqlNode {
+  /**
+   * 返回值类型是 boolean 。为什么呢？具体在 ChooseSqlNode 可找到答案。
+   * @param context
+   * @return
+   */
   boolean apply(DynamicContext context);
 }

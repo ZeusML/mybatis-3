@@ -17,6 +17,15 @@ package org.apache.ibatis.scripting.xmltags;
 
 /**
  * @author Frank D. Martinez [mnesarco]
+ *
+ * 实现 SqlNode 接口，<bind /> 标签的 SqlNode 实现类
+ *
+ * bind 元素可以从 OGNL 表达式中创建一个变量并将其绑定到上下文。比如：
+ * <select id="selectBlogsLike" resultType="Blog">
+ *   <bind name="pattern" value="'%' + _parameter.getTitle() + '%'" />
+ *   SELECT * FROM BLOG
+ *   WHERE title LIKE #{pattern}
+ * </select>
  */
 public class VarDeclSqlNode implements SqlNode {
 

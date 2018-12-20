@@ -26,6 +26,15 @@ import org.apache.ibatis.session.Configuration;
 
 /**
  * @author Clinton Begin
+ *
+ * <trim prefix="WHERE" prefixOverrides="AND |OR ">
+ *   ...
+ * </trim>
+ *
+ *
+ * <trim prefix="SET" suffixOverrides=",">
+ *   ...
+ * </trim>
  */
 public class TrimSqlNode implements SqlNode {
 
@@ -51,6 +60,7 @@ public class TrimSqlNode implements SqlNode {
 
   @Override
   public boolean apply(DynamicContext context) {
+    //创建 FilteredDynamicContext 对象
     FilteredDynamicContext filteredDynamicContext = new FilteredDynamicContext(context);
     boolean result = contents.apply(filteredDynamicContext);
     filteredDynamicContext.applyAll();
@@ -71,7 +81,13 @@ public class TrimSqlNode implements SqlNode {
 
   private class FilteredDynamicContext extends DynamicContext {
     private DynamicContext delegate;
+    /**
+     * 是否 prefix 已经被应用
+     */
     private boolean prefixApplied;
+    /**
+     * 是否 suffix 已经被应用
+     */
     private boolean suffixApplied;
     private StringBuilder sqlBuffer;
 
@@ -84,7 +100,9 @@ public class TrimSqlNode implements SqlNode {
     }
 
     public void applyAll() {
+      //trim 掉多余的空格，生成新的 sqlBuffer 对象
       sqlBuffer = new StringBuilder(sqlBuffer.toString().trim());
+      //将 sqlBuffer 大写，生成新的 trimmedUppercaseSql 对象
       String trimmedUppercaseSql = sqlBuffer.toString().toUpperCase(Locale.ENGLISH);
       if (trimmedUppercaseSql.length() > 0) {
         applyPrefix(sqlBuffer, trimmedUppercaseSql);

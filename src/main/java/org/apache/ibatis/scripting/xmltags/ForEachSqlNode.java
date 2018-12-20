@@ -22,6 +22,16 @@ import org.apache.ibatis.session.Configuration;
 
 /**
  * @author Clinton Begin
+ *
+ * <select id="selectPostIn" resultType="domain.blog.Post">
+ *   SELECT *
+ *   FROM POST P
+ *   WHERE ID in
+ *   <foreach item="item" index="index" collection="list"
+ *       open="(" separator="," close=")">
+ *         #{item}
+ *   </foreach>
+ * </select>
  */
 public class ForEachSqlNode implements SqlNode {
   public static final String ITEM_PREFIX = "__frch_";
@@ -56,6 +66,7 @@ public class ForEachSqlNode implements SqlNode {
       return true;
     }
     boolean first = true;
+    //添加 open 到 SQL 中
     applyOpen(context);
     int i = 0;
     for (Object o : iterable) {
@@ -119,6 +130,10 @@ public class ForEachSqlNode implements SqlNode {
     return ITEM_PREFIX + item + "_" + i;
   }
 
+  /**
+   * 标签中的变量的替换的 DynamicContext 实现类
+   */
+
   private static class FilteredDynamicContext extends DynamicContext {
     private final DynamicContext delegate;
     private final int index;
@@ -150,6 +165,7 @@ public class ForEachSqlNode implements SqlNode {
 
     @Override
     public void appendSql(String sql) {
+      // 将对 item 的访问，替换成 itemizeItem(item, index)
       GenericTokenParser parser = new GenericTokenParser("#{", "}", content -> {
         String newContent = content.replaceFirst("^\\s*" + item + "(?![^.,:\\s])", itemizeItem(item, index));
         if (itemIndex != null && newContent.equals(content)) {
@@ -169,6 +185,9 @@ public class ForEachSqlNode implements SqlNode {
   }
 
 
+  /**
+   * 多个元素之间的分隔符的 DynamicContext 实现类
+   */
   private class PrefixedContext extends DynamicContext {
     private final DynamicContext delegate;
     private final String prefix;
