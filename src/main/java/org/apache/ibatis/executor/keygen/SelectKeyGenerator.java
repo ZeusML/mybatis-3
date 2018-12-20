@@ -27,12 +27,20 @@ import org.apache.ibatis.session.ExecutorType;
 import org.apache.ibatis.session.RowBounds;
 
 /**
+ *
+ * 基于从数据库查询主键的 KeyGenerator 实现类，适用于 Oracle、PostgreSQL
  * @author Clinton Begin
  * @author Jeff Butler
  */
 public class SelectKeyGenerator implements KeyGenerator {
   
   public static final String SELECT_KEY_SUFFIX = "!selectKey";
+  /**
+   * 是否在 before 阶段执行
+   *
+   * true ：before
+   * after ：after
+   */
   private final boolean executeBefore;
   private final MappedStatement keyStatement;
 
@@ -57,6 +65,7 @@ public class SelectKeyGenerator implements KeyGenerator {
 
   private void processGeneratedKeys(Executor executor, MappedStatement ms, Object parameter) {
     try {
+      //有查询主键的 SQL 语句，即 keyStatement 对象非空
       if (parameter != null && keyStatement != null && keyStatement.getKeyProperties() != null) {
         String[] keyProperties = keyStatement.getKeyProperties();
         final Configuration configuration = ms.getConfiguration();
@@ -81,6 +90,7 @@ public class SelectKeyGenerator implements KeyGenerator {
                 setValue(metaParam, keyProperties[0], values.get(0));
               }
             } else {
+              // 遍历，进行赋值
               handleMultipleProperties(keyProperties, metaParam, metaResult);
             }
           }
