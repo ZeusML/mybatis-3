@@ -29,7 +29,13 @@ import org.apache.ibatis.session.ResultHandler;
  */
 public class DefaultMapResultHandler<K, V> implements ResultHandler<V> {
 
+  /**
+   * 结果，基于 Map 聚合
+   */
   private final Map<K, V> mappedResults;
+  /**
+   * {@link #mappedResults} 的 KEY 属性名
+   */
   private final String mapKey;
   private final ObjectFactory objectFactory;
   private final ObjectWrapperFactory objectWrapperFactory;

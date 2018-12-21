@@ -47,6 +47,11 @@ public class DefaultResultContext<T> implements ResultContext<T> {
     return stopped;
   }
 
+  /**
+   * 当前结果对象
+   *
+   * @param resultObject 当前结果对象
+   */
   public void nextResultObject(T resultObject) {
     resultCount++;
     this.resultObject = resultObject;

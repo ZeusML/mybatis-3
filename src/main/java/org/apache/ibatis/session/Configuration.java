@@ -781,6 +781,8 @@ public class Configuration {
    * Parses all the unprocessed statement nodes in the cache. It is recommended
    * to call this method once all the mappers are added as it provides fail-fast
    * statement validation.
+   *
+   * 保证所有 MappedStatement 已经构造完毕
    */
   protected void buildAllStatements() {
     parsePendingResultMaps();

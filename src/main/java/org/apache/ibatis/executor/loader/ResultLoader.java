@@ -47,10 +47,22 @@ public class ResultLoader {
   protected final ObjectFactory objectFactory;
   protected final CacheKey cacheKey;
   protected final BoundSql boundSql;
+  /**
+   * ResultExtractor 对象
+   */
   protected final ResultExtractor resultExtractor;
+  /**
+   * 创建 ResultLoader 对象时，所在的线程
+   */
   protected final long creatorThreadId;
-  
+
+  /**
+   * 是否已经加载
+   */
   protected boolean loaded;
+  /**
+   * 查询的结果对象
+   */
   protected Object resultObject;
   
   public ResultLoader(Configuration config, Executor executor, MappedStatement mappedStatement, Object parameterObject, Class<?> targetType, CacheKey cacheKey, BoundSql boundSql) {
@@ -66,20 +78,27 @@ public class ResultLoader {
     this.creatorThreadId = Thread.currentThread().getId();
   }
 
+  /**
+   * 加载结果
+   */
   public Object loadResult() throws SQLException {
+    //查询
     List<Object> list = selectList();
+    //提取
     resultObject = resultExtractor.extractObjectFromList(list, targetType);
     return resultObject;
   }
 
   private <E> List<E> selectList() throws SQLException {
     Executor localExecutor = executor;
+    //如果当前线程不是创建线程，则调用 #newExecutor() 方法，创建 Executor 对象，因为 Executor 是非线程安全的
     if (Thread.currentThread().getId() != this.creatorThreadId || localExecutor.isClosed()) {
       localExecutor = newExecutor();
     }
     try {
       return localExecutor.<E> query(mappedStatement, parameterObject, RowBounds.DEFAULT, Executor.NO_RESULT_HANDLER, cacheKey, boundSql);
     } finally {
+      //如果是新创建的 Executor 对象，则调用 Executor#close() 方法，关闭 Executor 对象。
       if (localExecutor != executor) {
         localExecutor.close(false);
       }

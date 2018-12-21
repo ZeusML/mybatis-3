@@ -36,6 +36,8 @@ import org.apache.ibatis.type.TypeHandlerRegistry;
 import org.apache.ibatis.type.UnknownTypeHandler;
 
 /**
+ *
+ * java.sql.ResultSet 的 包装器，可以理解成 ResultSet 的工具类，提供给 DefaultResultSetHandler 使用。
  * @author Iwao AVE!
  */
 public class ResultSetWrapper {
@@ -46,7 +48,18 @@ public class ResultSetWrapper {
   private final List<String> classNames = new ArrayList<>();
   private final List<JdbcType> jdbcTypes = new ArrayList<>();
   private final Map<String, Map<Class<?>, TypeHandler<?>>> typeHandlerMap = new HashMap<>();
+  /**
+   * 有 mapped 的字段的名字的映射
+   *
+   * KEY：{@link #getMapKey(ResultMap, String)}
+   * VALUE：字段的名字的数组
+   */
   private final Map<String, List<String>> mappedColumnNamesMap = new HashMap<>();
+  /**
+   * 无 mapped 的字段的名字的映射
+   *
+   * 和 {@link #mappedColumnNamesMap} 相反
+   */
   private final Map<String, List<String>> unMappedColumnNamesMap = new HashMap<>();
 
   public ResultSetWrapper(ResultSet rs, Configuration configuration) throws SQLException {
@@ -55,6 +68,7 @@ public class ResultSetWrapper {
     this.resultSet = rs;
     final ResultSetMetaData metaData = rs.getMetaData();
     final int columnCount = metaData.getColumnCount();
+    //遍历 ResultSetMetaData 的字段们，解析出 columnNames、jdbcTypes、classNames 属性
     for (int i = 1; i <= columnCount; i++) {
       columnNames.add(configuration.isUseColumnLabel() ? metaData.getColumnLabel(i) : metaData.getColumnName(i));
       jdbcTypes.add(JdbcType.forCode(metaData.getColumnType(i)));
@@ -91,6 +105,8 @@ public class ResultSetWrapper {
    * Gets the type handler to use when reading the result set.
    * Tries to get from the TypeHandlerRegistry by searching for the property type.
    * If not found it gets the column JDBC type and tries to get a handler for it.
+   *
+   * 获得指定字段名的指定 JavaType 类型的 TypeHandler 对象
    * 
    * @param propertyType
    * @param columnName
@@ -105,12 +121,14 @@ public class ResultSetWrapper {
     } else {
       handler = columnHandlers.get(propertyType);
     }
+    //如果获取不到，则进行查找
     if (handler == null) {
       JdbcType jdbcType = getJdbcType(columnName);
       handler = typeHandlerRegistry.getTypeHandler(propertyType, jdbcType);
       // Replicate logic of UnknownTypeHandler#resolveTypeHandler
       // See issue #59 comment 10
       if (handler == null || handler instanceof UnknownTypeHandler) {
+        //使用 classNames 中的类型，进行继续查找 TypeHandler 对象
         final int index = columnNames.indexOf(columnName);
         final Class<?> javaType = resolveClass(classNames.get(index));
         if (javaType != null && jdbcType != null) {
@@ -121,9 +139,11 @@ public class ResultSetWrapper {
           handler = typeHandlerRegistry.getTypeHandler(jdbcType);
         }
       }
+      //如果获取不到，则使用 ObjectTypeHandler 对象
       if (handler == null || handler instanceof UnknownTypeHandler) {
         handler = new ObjectTypeHandler();
       }
+      //缓存到 typeHandlerMap 中
       columnHandlers.put(propertyType, handler);
     }
     return handler;
@@ -144,6 +164,7 @@ public class ResultSetWrapper {
   private void loadMappedAndUnmappedColumnNames(ResultMap resultMap, String columnPrefix) throws SQLException {
     List<String> mappedColumnNames = new ArrayList<>();
     List<String> unmappedColumnNames = new ArrayList<>();
+    //将 columnPrefix 转换成大写，并拼接到 resultMap.mappedColumns 属性上
     final String upperColumnPrefix = columnPrefix == null ? null : columnPrefix.toUpperCase(Locale.ENGLISH);
     final Set<String> mappedColumns = prependPrefixes(resultMap.getMappedColumns(), upperColumnPrefix);
     for (String columnName : columnNames) {
