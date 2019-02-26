@@ -39,6 +39,9 @@ public class PluginTest {
     assertFalse("Always".equals(map.toString()));
   }
 
+  /**
+   * 通过 @Intercepts 和 @Signature 注解，定义了需要拦截的方法为 Map 类型、方法为 "get" 方法，方法参数为 Object.class
+   */
   @Intercepts({
       @Signature(type = Map.class, method = "get", args = {Object.class})})
   public static class AlwaysMapPlugin implements Interceptor {

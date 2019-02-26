@@ -40,6 +40,12 @@ public class Plugin implements InvocationHandler {
     this.signatureMap = signatureMap;
   }
 
+  /**
+   * 创建目标类的代理对象
+   * @param target
+   * @param interceptor
+   * @return
+   */
   public static Object wrap(Object target, Interceptor interceptor) {
     Map<Class<?>, Set<Method>> signatureMap = getSignatureMap(interceptor);
     Class<?> type = target.getClass();
@@ -56,16 +62,24 @@ public class Plugin implements InvocationHandler {
   @Override
   public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
     try {
+      // 获得目标方法是否被拦截
       Set<Method> methods = signatureMap.get(method.getDeclaringClass());
       if (methods != null && methods.contains(method)) {
+        // 如果是，则拦截处理该方法
         return interceptor.intercept(new Invocation(target, method, args));
       }
+      // 如果不是，则调用原方法
       return method.invoke(target, args);
     } catch (Exception e) {
       throw ExceptionUtil.unwrapThrowable(e);
     }
   }
 
+  /**
+   * 获得拦截的方法映射
+   * @param interceptor
+   * @return
+   */
   private static Map<Class<?>, Set<Method>> getSignatureMap(Interceptor interceptor) {
     Intercepts interceptsAnnotation = interceptor.getClass().getAnnotation(Intercepts.class);
     // issue #251
@@ -86,6 +100,12 @@ public class Plugin implements InvocationHandler {
     return signatureMap;
   }
 
+  /**
+   * 获得目标类的接口集合
+   * @param type
+   * @param signatureMap
+   * @return
+   */
   private static Class<?>[] getAllInterfaces(Class<?> type, Map<Class<?>, Set<Method>> signatureMap) {
     Set<Class<?>> interfaces = new HashSet<>();
     while (type != null) {
